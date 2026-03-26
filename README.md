@@ -45,20 +45,51 @@ class SomeClass: SomeProtocol {
 }
 ```
 
-So now comes the tricky part, to create a fake object that could be used from tests for `SomeClass` class, we should do this:
+#### Using `@Fakeable` macro
+
+The easiest way to create a fake object is by using the `@Fakeable` macro. Just add it to your protocol and a fake class will be generated automatically.
+
+```swift
+@Fakeable
+protocol SomeProtocol {
+
+    func someFunction(with parameter: String) -> Int
+
+}
+```
+
+That's it. A `FakeSomeProtocol` class will be generated at compile time with all the `Fn` properties and forwarding implementations. You can use it right away:
+
+```swift
+    let fakeSomeClass = FakeSomeProtocol()
+
+    fakeSomeClass.when(\.fnSomeFunction).thenReturn(42)
+
+    let result = fakeSomeClass.someFunction(with: "parameterValue")
+```
+
+#### Key steps:
+- add `@Fakeable` attribute to the protocol
+- the generated class will be named `Fake` + protocol name
+- it conforms to both the protocol and `Mimic`, so `when`/`verify` works out of the box
+- it supports methods with parameters, return types, `throws`, `async throws`, properties and closures
+
+#### Creating fake objects manually
+
+If you prefer to create fake objects manually or need more control, you can do it like this:
 
 ```swift
 final class FakeSomeClass: SomeProtocol, Mimic {
-    
+
     let fnSomeFunction = Fn<Int>()
-    
+
     func someFunction(with parameter: String) -> Int {
         return try! fnSomeFunction.invoke(params: parameter)
     }
-    
+
 }
 ```
-#### Key steps: 
+#### Key steps:
 - add `Mimic` protocol to the fake class
 - create a `Fn` instance where the generic type is the result type of the function that behaviour we want to replace
 - add the fn instance to the function and invoke, pass the parameters and return with it
@@ -163,6 +194,7 @@ Just like in mocking frameworks, `mimic` has matchers as well, it could be use f
 - `Arg.nil` it expects that the value will be `nil`.
 - `Arg.notNil` it expects that the valu won't be `nil`.
 - `Arg.invokeClosure(<closure>)` the given `closure` will be called when the function invocation happens.
+- `Arg.captor()` creates an `ArgumentCaptor` that captures arguments for later inspection.
 
 ```swift
     let expectedArgument = "testExpectedArgument"
@@ -177,6 +209,27 @@ Just like in mocking frameworks, `mimic` has matchers as well, it could be use f
 - matchers can be used with `calledWith` method after `when` and `verify` as well
 - after `calledWith` other functions could be called, like `thenReturn`
 - in the example above, the `thenReturn` will be used only if the arguments passed to the funtion fits with the matchers
+
+#### `ArgumentCaptor`
+Sometimes we want to capture the arguments that were passed to the function and inspect them later. `ArgumentCaptor` is a matcher that captures arguments while also allowing the function to proceed.
+```swift
+    let captor = ArgumentCaptor<String>()
+
+    fakeSomeClass.when(\.fnSomeFunction).calledWith(captor.capture()).thenReturn(42)
+
+    _ = fakeSomeClass.someFunction(with: "hello")
+    _ = fakeSomeClass.someFunction(with: "world")
+
+    captor.values     // ["hello", "world"]
+    captor.firstValue // "hello"
+    captor.lastValue  // "world"
+```
+#### Key steps:
+- create an `ArgumentCaptor` with the expected type as generic parameter
+- use `captor.capture()` in `calledWith` to capture arguments and allow the function to proceed
+- access captured values with `values`, `firstValue` and `lastValue`
+- multiple captors can be used in the same `calledWith` for different parameters
+- `captor.reset()` clears the captured values
 
 #### `thenThrow`
 It is just simply throw the given Error when the function being called.
@@ -203,6 +256,28 @@ Possible values:
 - `.atLeast(<Int value>)` it means the function should be called `<Int value>` or more times
 - `.atMax(<Int value>)` it means the function should be called maximum `<Int value>` times
 - `.eq(<Int value>)` it means the function should be called exactly `<Int value>` times
+
+### `reset` and `resetAll` used for test lifecycle management
+
+#### `reset()`
+Sometimes we need to clear the state of a single `Fn` instance between test cases or within a test. This could be useful when we want to reconfigure the fake object without creating a new instance.
+```swift
+    fakeSomeClass.fwar.reset()
+```
+This clears the invocation count, logs, function closure and name of the `Fn` instance.
+
+#### `resetAll()`
+When we want to reset all `Fn` properties of a fake object at once, we can use `resetAll()`. It uses reflection to find all `Fn` properties and reset them.
+```swift
+    fakeSomeClass.resetAll()
+
+    fakeSomeClass.when(\.fnSomeFunction).thenReturn(42)
+```
+#### Key steps:
+- `reset()` can be called on any `Fn` instance to clear its state
+- `resetAll()` can be called on any `Mimic` conforming class to reset all `Fn` properties
+- after reset, the `Fn` instance needs to be reconfigured with `when` before it can be used again
+- calling `invoke` on a reset `Fn` without reconfiguring it will throw `MimicError.incompleteMimicking`
 
 ## Instance Generation for Codable Data Classes
 

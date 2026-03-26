@@ -34,5 +34,14 @@ public extension Mimic {
     static func == (lhs: Self, rhs: Self) -> Bool {
         return lhs.props() == rhs.props()
     }
+
+    func resetAll() {
+        let mirror = Mirror(reflecting: self)
+        for child in mirror.children {
+            if let resettable = child.value as? Resettable {
+                resettable.reset()
+            }
+        }
+    }
     
 }

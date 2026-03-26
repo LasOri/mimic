@@ -46,4 +46,11 @@ public class Fn<ReturnType>: MimickedFunction {
         return result
     }
 
+    public func reset() {
+        invocationCount = 0
+        logs = []
+        function = nil
+        name = nil
+    }
+
 }

@@ -5,14 +5,18 @@
 
 import Foundation
 
-public protocol MimickedFunction {
-    
+public protocol MimickedFunction: Resettable {
+
     associatedtype ReturnType
-    
+
     var name: String! { get }
     var function: ((_ invocationCount: Int, _ params: Params?) throws -> (ReturnType))? { get set }
     var invocationCount: Int { get set }
-    
+
     func invoke(_ fnName: String, params: Any...) throws -> ReturnType
-    
+
+}
+
+public protocol Resettable: AnyObject {
+    func reset()
 }

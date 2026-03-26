@@ -5,13 +5,18 @@
 
 import Foundation
 
-public struct NilMatcher: Matcher {
+public struct NilMatcher: Matcher, Sendable {
     
     public let value: () = ()
     
     public func evaluate<Argument>(arg: Argument) throws {
-        if let optional = arg as? Optional<Argument>, optional != nil {
-            throw MimicError.argumentMismatch(message: "Expected argument is `nil`, but was: `\(optional!)`")
+        let mirror = Mirror(reflecting: arg)
+        if mirror.displayStyle == .optional {
+            if let (_, value) = mirror.children.first {
+                throw MimicError.argumentMismatch(message: "Expected argument is `nil`, but was: `\(value)`")
+            }
+        } else {
+            throw MimicError.argumentMismatch(message: "Expected argument is `nil`, but was: `\(arg)`")
         }
     }
     

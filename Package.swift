@@ -1,4 +1,4 @@
-// swift-tools-version: 5.7
+// swift-tools-version: 6.3
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 // SPDX-FileCopyrightText: 2023 Emarsys-Technologies Kft.
@@ -12,7 +12,7 @@ let package = Package(
     name: "mimic",
     platforms: [
         .macOS(.v13),
-        .iOS(.v12)
+        .iOS(.v13)
     ],
     products: [
         .library(

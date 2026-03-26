@@ -5,12 +5,19 @@
 
 import Foundation
 
-public struct NotNilMatcher: Matcher {
+public struct NotNilMatcher: Matcher, Sendable {
     
     public let value: () = ()
     
     public func evaluate<Argument>(arg: Argument) throws {
-        if let optional = arg as? Optional<Argument>, optional == nil {
+        let isNil: Bool = {
+            let mirror = Mirror(reflecting: arg)
+            if mirror.displayStyle == .optional {
+                return mirror.children.isEmpty
+            }
+            return false
+        }()
+        if isNil {
             throw MimicError.argumentMismatch(message: "Argument must not be `nil`, but it was `nil`.")
         }
     }

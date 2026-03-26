@@ -5,7 +5,7 @@
 
 import Foundation
 
-public struct AnyMatcher: Matcher {
+public struct AnyMatcher: Matcher, Sendable {
     
     public let value: () = ()
     

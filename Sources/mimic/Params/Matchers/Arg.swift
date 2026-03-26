@@ -7,11 +7,11 @@ import Foundation
 
 public struct Arg {
     
-    public static var `any` = AnyMatcher()
+    public static let `any` = AnyMatcher()
 
-    public static var `nil` = NilMatcher()
+    public static let `nil` = NilMatcher()
 
-    public static var notNil = NotNilMatcher()
+    public static let notNil = NotNilMatcher()
     
     public static func eq<ValueType>(_ value: ValueType) -> EqMatcher<ValueType> where ValueType: Equatable {
         return EqMatcher(value: value)

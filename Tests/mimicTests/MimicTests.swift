@@ -356,24 +356,28 @@ final class MimicTests: XCTestCase {
         }
     }
     
-    func testVerify_onThread() async throws {
-        var expectedThreadName = String(describing: Thread.current)
-        var butWasThreadName: String?
-        
-        @MainActor
-        func runOnMain() async throws {
-            butWasThreadName = String(describing: Thread.current)
-            _ = try mimickedClass.functionWithArg(arg: "Oh, well.. That was unexpected.")
-        }
-        
+    func testVerify_onThread() throws {
+        let callerThread = Thread.current
+        let expectedThreadName = String(describing: callerThread)
+
         mimickedClass
             .when(\.fwar)
             .thenReturn("Chewie, we’re home.")
-        
-        try await runOnMain()
-        
-        XCTAssertThrowsError(try mimickedClass.verify(\.fwar).on(thread: Thread.current)) { error in
-            XCTAssertEqual(error as! MimicError, .verificationFailed(message: "Expected thread: `\(expectedThreadName)`, but was: `\(butWasThreadName!)`"))
+
+        let expectation = XCTestExpectation(description: "Run on background thread")
+        var backgroundThreadName: String?
+
+        let bgThread = Thread {
+            backgroundThreadName = String(describing: Thread.current)
+            _ = try? self.mimickedClass.functionWithArg(arg: "Oh, well.. That was unexpected.")
+            expectation.fulfill()
+        }
+        bgThread.start()
+
+        wait(for: [expectation], timeout: 2.0)
+
+        XCTAssertThrowsError(try mimickedClass.verify(\.fwar).on(thread: callerThread)) { error in
+            XCTAssertEqual(error as! MimicError, .verificationFailed(message: "Expected thread: `\(expectedThreadName)`, but was: `\(backgroundThreadName!)`"))
         }
     }
     

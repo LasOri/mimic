@@ -20,5 +20,9 @@ public struct Arg {
     public static func invokeClosure<ClosureType>(_ closure: @escaping (ClosureType) -> ()) -> ClosureMatcher<ClosureType> {
         return ClosureMatcher(value: closure )
     }
-    
+
+    public static func captor<T>() -> ArgumentCaptor<T> {
+        return ArgumentCaptor<T>()
+    }
+
 }

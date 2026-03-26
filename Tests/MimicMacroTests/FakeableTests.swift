@@ -16,8 +16,6 @@ let testMacros: [String: Macro.Type] = [
 
 final class FakeableTests: XCTestCase {
 
-    // MARK: - Basic method
-
     func testFakeable_basicMethodWithReturn() throws {
         #if canImport(MimicMacroPlugin)
         assertMacroExpansion(
@@ -46,8 +44,6 @@ final class FakeableTests: XCTestCase {
         throw XCTSkip("macros are only supported when running tests for the host platform")
         #endif
     }
-
-    // MARK: - Method with parameters
 
     func testFakeable_methodWithParameters() throws {
         #if canImport(MimicMacroPlugin)
@@ -78,8 +74,6 @@ final class FakeableTests: XCTestCase {
         #endif
     }
 
-    // MARK: - Async throwing method
-
     func testFakeable_asyncThrowingMethod() throws {
         #if canImport(MimicMacroPlugin)
         assertMacroExpansion(
@@ -108,8 +102,6 @@ final class FakeableTests: XCTestCase {
         throw XCTSkip("macros are only supported when running tests for the host platform")
         #endif
     }
-
-    // MARK: - Void return method
 
     func testFakeable_voidReturnMethod() throws {
         #if canImport(MimicMacroPlugin)
@@ -140,8 +132,6 @@ final class FakeableTests: XCTestCase {
         #endif
     }
 
-    // MARK: - Non-throwing method
-
     func testFakeable_nonThrowingMethod() throws {
         #if canImport(MimicMacroPlugin)
         assertMacroExpansion(
@@ -171,8 +161,6 @@ final class FakeableTests: XCTestCase {
         #endif
     }
 
-    // MARK: - Get-only property
-
     func testFakeable_getOnlyProperty() throws {
         #if canImport(MimicMacroPlugin)
         assertMacroExpansion(
@@ -201,8 +189,6 @@ final class FakeableTests: XCTestCase {
         throw XCTSkip("macros are only supported when running tests for the host platform")
         #endif
     }
-
-    // MARK: - Get/set property
 
     func testFakeable_getSetProperty() throws {
         #if canImport(MimicMacroPlugin)
@@ -238,8 +224,6 @@ final class FakeableTests: XCTestCase {
         throw XCTSkip("macros are only supported when running tests for the host platform")
         #endif
     }
-
-    // MARK: - Multiple methods and properties
 
     func testFakeable_multipleMembersGenerated() throws {
         #if canImport(MimicMacroPlugin)
@@ -282,8 +266,6 @@ final class FakeableTests: XCTestCase {
         #endif
     }
 
-    // MARK: - Optional parameter uses as Any
-
     func testFakeable_optionalParameterCastsToAny() throws {
         #if canImport(MimicMacroPlugin)
         assertMacroExpansion(
@@ -313,8 +295,6 @@ final class FakeableTests: XCTestCase {
         #endif
     }
 
-    // MARK: - Error: applied to non-protocol
-
     func testFakeable_appliedToClass_emitsError() throws {
         #if canImport(MimicMacroPlugin)
         assertMacroExpansion(
@@ -334,8 +314,6 @@ final class FakeableTests: XCTestCase {
         throw XCTSkip("macros are only supported when running tests for the host platform")
         #endif
     }
-
-    // MARK: - External/internal parameter names
 
     func testFakeable_externalAndInternalParameterNames() throws {
         #if canImport(MimicMacroPlugin)
@@ -366,8 +344,6 @@ final class FakeableTests: XCTestCase {
         #endif
     }
 
-    // MARK: - Underscore label
-
     func testFakeable_underscoreLabel() throws {
         #if canImport(MimicMacroPlugin)
         assertMacroExpansion(
@@ -397,8 +373,6 @@ final class FakeableTests: XCTestCase {
         #endif
     }
 
-    // MARK: - Empty protocol
-
     func testFakeable_emptyProtocol() throws {
         #if canImport(MimicMacroPlugin)
         assertMacroExpansion(
@@ -422,8 +396,6 @@ final class FakeableTests: XCTestCase {
         #endif
     }
 
-    // MARK: - Optional return type
-
     func testFakeable_optionalReturnType() throws {
         #if canImport(MimicMacroPlugin)
         assertMacroExpansion(
@@ -443,6 +415,232 @@ final class FakeableTests: XCTestCase {
 
                 func find(key: String) throws -> String? {
                     return try fnFind.invoke(params: key)
+                }
+            }
+            """,
+            macros: testMacros
+        )
+        #else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+        #endif
+    }
+
+    func testFakeable_asyncNonThrowingMethod() throws {
+        #if canImport(MimicMacroPlugin)
+        assertMacroExpansion(
+            """
+            @Fakeable
+            protocol Worker {
+                func doWork() async -> String
+            }
+            """,
+            expandedSource: """
+            protocol Worker {
+                func doWork() async -> String
+            }
+
+            final class FakeWorker: Worker, Mimic {
+                public let fnDoWork = Fn<String>()
+
+                func doWork() async -> String {
+                    return try! await fnDoWork.invoke()
+                }
+            }
+            """,
+            macros: testMacros
+        )
+        #else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+        #endif
+    }
+
+    func testFakeable_nonThrowingMethodWithReturnAndParams() throws {
+        #if canImport(MimicMacroPlugin)
+        assertMacroExpansion(
+            """
+            @Fakeable
+            protocol Calculator {
+                func compute(x: Int) -> String
+            }
+            """,
+            expandedSource: """
+            protocol Calculator {
+                func compute(x: Int) -> String
+            }
+
+            final class FakeCalculator: Calculator, Mimic {
+                public let fnCompute = Fn<String>()
+
+                func compute(x: Int) -> String {
+                    return try! fnCompute.invoke(params: x)
+                }
+            }
+            """,
+            macros: testMacros
+        )
+        #else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+        #endif
+    }
+
+    func testFakeable_closureParameter() throws {
+        #if canImport(MimicMacroPlugin)
+        assertMacroExpansion(
+            """
+            @Fakeable
+            protocol EventHandler {
+                func register(completion: @escaping (Error) -> Void) throws
+            }
+            """,
+            expandedSource: """
+            protocol EventHandler {
+                func register(completion: @escaping (Error) -> Void) throws
+            }
+
+            final class FakeEventHandler: EventHandler, Mimic {
+                public let fnRegister = Fn<()>()
+
+                func register(completion: @escaping (Error) -> Void) throws {
+                    try fnRegister.invoke(params: completion)
+                }
+            }
+            """,
+            macros: testMacros
+        )
+        #else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+        #endif
+    }
+
+    func testFakeable_appliedToStruct_emitsError() throws {
+        #if canImport(MimicMacroPlugin)
+        assertMacroExpansion(
+            """
+            @Fakeable
+            struct NotAProtocol {}
+            """,
+            expandedSource: """
+            struct NotAProtocol {}
+            """,
+            diagnostics: [
+                DiagnosticSpec(message: "@Fakeable can only be applied to protocols", line: 1, column: 1)
+            ],
+            macros: testMacros
+        )
+        #else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+        #endif
+    }
+
+    func testFakeable_appliedToEnum_emitsError() throws {
+        #if canImport(MimicMacroPlugin)
+        assertMacroExpansion(
+            """
+            @Fakeable
+            enum NotAProtocol {}
+            """,
+            expandedSource: """
+            enum NotAProtocol {}
+            """,
+            diagnostics: [
+                DiagnosticSpec(message: "@Fakeable can only be applied to protocols", line: 1, column: 1)
+            ],
+            macros: testMacros
+        )
+        #else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+        #endif
+    }
+
+    func testFakeable_optionalProperty() throws {
+        #if canImport(MimicMacroPlugin)
+        assertMacroExpansion(
+            """
+            @Fakeable
+            protocol Labeled {
+                var label: String? { get }
+            }
+            """,
+            expandedSource: """
+            protocol Labeled {
+                var label: String? { get }
+            }
+
+            final class FakeLabeled: Labeled, Mimic {
+                public let fnLabelGetter = Fn<String?>()
+
+                var label: String? {
+                    try! fnLabelGetter.invoke()
+                }
+            }
+            """,
+            macros: testMacros
+        )
+        #else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+        #endif
+    }
+
+    func testFakeable_mixedOptionalAndNonOptionalParams() throws {
+        #if canImport(MimicMacroPlugin)
+        assertMacroExpansion(
+            """
+            @Fakeable
+            protocol Updater {
+                func update(id: String, name: String?) throws
+            }
+            """,
+            expandedSource: """
+            protocol Updater {
+                func update(id: String, name: String?) throws
+            }
+
+            final class FakeUpdater: Updater, Mimic {
+                public let fnUpdate = Fn<()>()
+
+                func update(id: String, name: String?) throws {
+                    try fnUpdate.invoke(params: id, name as Any)
+                }
+            }
+            """,
+            macros: testMacros
+        )
+        #else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+        #endif
+    }
+
+    func testFakeable_onlyProperties() throws {
+        #if canImport(MimicMacroPlugin)
+        assertMacroExpansion(
+            """
+            @Fakeable
+            protocol Settings {
+                var timeout: Int { get }
+                var name: String { get set }
+            }
+            """,
+            expandedSource: """
+            protocol Settings {
+                var timeout: Int { get }
+                var name: String { get set }
+            }
+
+            final class FakeSettings: Settings, Mimic {
+                public let fnTimeoutGetter = Fn<Int>()
+                public let fnNameGetter = Fn<String>()
+                public let fnNameSetter = Fn<()>()
+
+                var timeout: Int {
+                    try! fnTimeoutGetter.invoke()
+                }
+                var name: String {
+                    get {
+                        try! fnNameGetter.invoke()
+                    }
+                    set {
+                        try! fnNameSetter.invoke(params: newValue)
+                    }
                 }
             }
             """,

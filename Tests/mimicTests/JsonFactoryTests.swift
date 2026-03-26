@@ -15,13 +15,10 @@ final class JsonFactoryTests: XCTestCase {
         stringGenerator: StringGenerator()
     )
 
-    // MARK: - Primitive type creation
-
     func testCreate_boolType() throws {
         let result = try factory.create(Bool.self)
 
         if case .bool = result {
-            // pass
         } else {
             XCTFail("Expected Json.bool, got \(result)")
         }
@@ -31,7 +28,6 @@ final class JsonFactoryTests: XCTestCase {
         let result = try factory.create(Int.self)
 
         if case .int = result {
-            // pass
         } else {
             XCTFail("Expected Json.int, got \(result)")
         }
@@ -41,7 +37,6 @@ final class JsonFactoryTests: XCTestCase {
         let result = try factory.create(Double.self)
 
         if case .double = result {
-            // pass
         } else {
             XCTFail("Expected Json.double, got \(result)")
         }
@@ -51,13 +46,10 @@ final class JsonFactoryTests: XCTestCase {
         let result = try factory.create(String.self)
 
         if case .string = result {
-            // pass
         } else {
             XCTFail("Expected Json.string, got \(result)")
         }
     }
-
-    // MARK: - Array type creation
 
     func testCreate_arrayOfStrings() throws {
         let result = try factory.create(Array<String>.self)
@@ -65,7 +57,6 @@ final class JsonFactoryTests: XCTestCase {
         if case .array(let elements) = result {
             XCTAssertEqual(elements.count, 1)
             if case .string = elements[0] {
-                // pass
             } else {
                 XCTFail("Expected array element to be Json.string, got \(elements[0])")
             }
@@ -80,7 +71,6 @@ final class JsonFactoryTests: XCTestCase {
         if case .array(let elements) = result {
             XCTAssertEqual(elements.count, 1)
             if case .int = elements[0] {
-                // pass
             } else {
                 XCTFail("Expected array element to be Json.int, got \(elements[0])")
             }
@@ -89,15 +79,12 @@ final class JsonFactoryTests: XCTestCase {
         }
     }
 
-    // MARK: - Dictionary type creation
-
     func testCreate_dictionaryStringToString() throws {
         let result = try factory.create(Dictionary<String, String>.self)
 
         if case .object(let dict) = result {
             XCTAssertEqual(dict.count, 1)
             if case .string = dict.values.first {
-                // pass
             } else {
                 XCTFail("Expected dictionary value to be Json.string")
             }
@@ -112,7 +99,6 @@ final class JsonFactoryTests: XCTestCase {
         if case .object(let dict) = result {
             XCTAssertEqual(dict.count, 1)
             if case .int = dict.values.first {
-                // pass
             } else {
                 XCTFail("Expected dictionary value to be Json.int")
             }
@@ -121,15 +107,12 @@ final class JsonFactoryTests: XCTestCase {
         }
     }
 
-    // MARK: - Unknown type falls back to object with string values
-
     func testCreate_unknownType_returnsObjectWithStringValues() throws {
         let result = try factory.create(SomeSubStruct.self)
 
         if case .object(let dict) = result {
             XCTAssertEqual(dict.count, 1)
             if case .string = dict.values.first {
-                // pass
             } else {
                 XCTFail("Expected fallback object value to be Json.string")
             }
@@ -137,8 +120,6 @@ final class JsonFactoryTests: XCTestCase {
             XCTFail("Expected Json.object for unknown type, got \(result)")
         }
     }
-
-    // MARK: - generate() error cases
 
     func testGenerate_emptyTypeNames_throwsDecodingFailed() {
         XCTAssertThrowsError(try factory.generate([])) { error in
@@ -164,13 +145,10 @@ final class JsonFactoryTests: XCTestCase {
         }
     }
 
-    // MARK: - generate() direct calls
-
     func testGenerate_boolTypeName() throws {
         let result = try factory.generate(["Bool"])
 
         if case .bool = result {
-            // pass
         } else {
             XCTFail("Expected Json.bool, got \(result)")
         }
@@ -182,7 +160,6 @@ final class JsonFactoryTests: XCTestCase {
         if case .array(let elements) = result {
             XCTAssertEqual(elements.count, 1)
             if case .bool = elements[0] {
-                // pass
             } else {
                 XCTFail("Expected array element to be Json.bool, got \(elements[0])")
             }
@@ -197,7 +174,6 @@ final class JsonFactoryTests: XCTestCase {
         if case .object(let dict) = result {
             XCTAssertEqual(dict.count, 1)
             if case .double = dict.values.first {
-                // pass
             } else {
                 XCTFail("Expected dictionary value to be Json.double")
             }

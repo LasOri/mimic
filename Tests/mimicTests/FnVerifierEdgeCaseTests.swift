@@ -10,8 +10,6 @@ final class FnVerifierEdgeCaseTests: XCTestCase {
 
     let mimickedClass = MimickedClass()
 
-    // MARK: - Fn invocation count
-
     func testFn_invocationCount_incrementsOnEachCall() throws {
         mimickedClass.when(\.fwar).thenReturn("result")
 
@@ -25,8 +23,6 @@ final class FnVerifierEdgeCaseTests: XCTestCase {
     func testFn_invocationCount_startsAtZero() {
         XCTAssertEqual(mimickedClass.fwar.invocationCount, 0)
     }
-
-    // MARK: - Fn logs
 
     func testFn_logs_captureEachInvocation() throws {
         mimickedClass.when(\.fwar).thenReturn("result")
@@ -85,32 +81,18 @@ final class FnVerifierEdgeCaseTests: XCTestCase {
         XCTAssertNil(mimickedClass.fwr.logs.first?.result)
     }
 
-    // MARK: - Verify zeroInteractions error
-
     func testVerify_onEmptyLogs_throwsZeroInteractions() throws {
         mimickedClass.when(\.fwar).thenReturn("result")
         _ = try mimickedClass.functionWithArg(arg: "a")
 
-        // wasCalled with non-matching arg: logs are non-empty but filtered result is empty
-        // This triggers argument mismatch, not zero interactions
-        // zeroInteractions is thrown when fn.logs is completely empty AND fn.name is set
-        // Fn.name is only set on first invoke, so we test via a different path:
-        // Use verify().times() on a function that was invoked
         _ = try mimickedClass.verify(\.fwar).times(times: .eq(1))
     }
 
     func testVerify_wasCalled_onEmptyLogs_crashesDueToNilName() {
-        // Note: calling verify().wasCalled() on a never-invoked Fn crashes
-        // because fn.name is nil (implicitly unwrapped). This documents the behavior.
-        // In practice, users should only verify functions that have been stubbed and invoked.
     }
 
     func testVerify_onThread_onEmptyLogs_crashesDueToNilName() {
-        // Same as above: verify().on(thread:) on a never-invoked Fn crashes
-        // because fn.name is nil. This documents the current behavior.
     }
-
-    // MARK: - Verify missingMatcher
 
     func testVerify_wasCalled_withNoMatchers_throwsMissingMatcher() throws {
         mimickedClass.when(\.fwar).thenReturn("result")
@@ -121,21 +103,14 @@ final class FnVerifierEdgeCaseTests: XCTestCase {
         }
     }
 
-    // MARK: - Times success cases
-
     func testVerify_times_zero_success_whenNeverCalled() throws {
         let fn = Fn<String>()
         fn.when.thenReturn("result")
 
-        // Call once, but verify wasCalled with non-matching arg returns zero for that arg
-        // Actually, Times.zero on Verifier checks fn.logs directly — and requires logs to be non-empty
-        // So Times.zero always throws since it guards on !logs.isEmpty first
-        // This is by design: you can't verify .zero if there are no interactions at all
         let fn2 = Fn<()>()
         fn2.when.thenReturn(())
         try fn2.invoke()
 
-        // Call once, verify .eq(1) succeeds
         _ = try fn2.verify.times(times: .eq(1))
     }
 
@@ -163,16 +138,12 @@ final class FnVerifierEdgeCaseTests: XCTestCase {
         _ = try mimickedClass.verify(\.fwar).times(times: .max(3))
     }
 
-    // MARK: - Verify on correct thread
-
     func testVerify_onThread_success_whenCalledOnSameThread() throws {
         mimickedClass.when(\.fwar).thenReturn("result")
         _ = try mimickedClass.functionWithArg(arg: "input")
 
         _ = try mimickedClass.verify(\.fwar).on(thread: Thread.current)
     }
-
-    // MARK: - FilteredVerifier times
 
     func testFilteredVerifier_times_eq_success() throws {
         mimickedClass.when(\.fwar).thenReturn("result")
@@ -207,14 +178,11 @@ final class FnVerifierEdgeCaseTests: XCTestCase {
             .times(times: .atLeast(5))
         ) { error in
             if case MimicError.verificationFailed = error {
-                // pass
             } else {
                 XCTFail("Expected verificationFailed, got \(error)")
             }
         }
     }
-
-    // MARK: - Multiple when() calls replace behavior
 
     func testWhen_calledMultipleTimes_replacesStub() throws {
         mimickedClass.when(\.fwar).thenReturn("first")
@@ -227,8 +195,6 @@ final class FnVerifierEdgeCaseTests: XCTestCase {
         XCTAssertEqual(result2, "second")
     }
 
-    // MARK: - NilMatcher success path
-
     func testNilMatcher_success_whenArgIsNil() throws {
         mimickedClass.when(\.fwar)
             .calledWith(Arg.nil)
@@ -239,8 +205,6 @@ final class FnVerifierEdgeCaseTests: XCTestCase {
         XCTAssertEqual(result, "nilResult")
     }
 
-    // MARK: - NotNilMatcher success path
-
     func testNotNilMatcher_success_whenArgIsNotNil() throws {
         mimickedClass.when(\.fwar)
             .calledWith(Arg.notNil)
@@ -250,8 +214,6 @@ final class FnVerifierEdgeCaseTests: XCTestCase {
 
         XCTAssertEqual(result, "notNilResult")
     }
-
-    // MARK: - AnyMatcher
 
     func testAnyMatcher_matchesAnyValue() throws {
         mimickedClass.when(\.fwar)
@@ -265,8 +227,6 @@ final class FnVerifierEdgeCaseTests: XCTestCase {
         XCTAssertEqual(result2, "anyResult")
     }
 
-    // MARK: - EqMatcher success path
-
     func testEqMatcher_success_whenValuesMatch() throws {
         mimickedClass.when(\.fwar)
             .calledWith(Arg.eq("match"))
@@ -277,8 +237,6 @@ final class FnVerifierEdgeCaseTests: XCTestCase {
         XCTAssertEqual(result, "eqResult")
     }
 
-    // MARK: - Fn name is captured
-
     func testFn_name_isCapturedFromFunctionName() throws {
         mimickedClass.when(\.fwar).thenReturn("result")
 
@@ -287,8 +245,6 @@ final class FnVerifierEdgeCaseTests: XCTestCase {
         XCTAssertNotNil(mimickedClass.fwar.name)
         XCTAssertTrue(mimickedClass.fwar.name.contains("functionWithArg"))
     }
-
-    // MARK: - thenThrow with matchers
 
     func testThenThrow_withCalledWith_throwsWhenMatcherPasses() {
         mimickedClass.when(\.fwar)
@@ -299,8 +255,6 @@ final class FnVerifierEdgeCaseTests: XCTestCase {
             XCTAssertEqual(error as! TestError, .magicWord)
         }
     }
-
-    // MARK: - thenReturns with single value
 
     func testThenReturns_withSingleValue() throws {
         mimickedClass.when(\.fwar).thenReturns("only")
@@ -320,8 +274,6 @@ final class FnVerifierEdgeCaseTests: XCTestCase {
         }
     }
 
-    // MARK: - Fn invoke without params
-
     func testFn_invoke_withoutParams() throws {
         mimickedClass.when(\.fwr).thenReturn(())
 
@@ -329,8 +281,6 @@ final class FnVerifierEdgeCaseTests: XCTestCase {
 
         XCTAssertEqual(mimickedClass.fwr.invocationCount, 1)
     }
-
-    // MARK: - Params subscript
 
     func testParams_subscript_returnsCorrectType() throws {
         mimickedClass.when(\.fwar).replaceFunction { invocationCount, params in
@@ -342,8 +292,6 @@ final class FnVerifierEdgeCaseTests: XCTestCase {
 
         XCTAssertEqual(result, "typed")
     }
-
-    // MARK: - Verify wasCalled success with matching args
 
     func testVerify_wasCalled_success_withMatchingArgs() throws {
         mimickedClass.when(\.fwar).thenReturn("result")

@@ -10,8 +10,6 @@ final class InstanceGeneratorExtendedTests: XCTestCase {
 
     let instanceGenerator = InstanceGenerator()
 
-    // MARK: - Simple struct generation
-
     func testGenerate_simpleStruct() throws {
         let result: SomeSubStruct = try instanceGenerator.generate(nil)
 
@@ -25,8 +23,6 @@ final class InstanceGeneratorExtendedTests: XCTestCase {
         XCTAssertFalse(result.dict.isEmpty)
         XCTAssertFalse(result.array.isEmpty)
     }
-
-    // MARK: - Complex struct generation (SomeStruct with all field types)
 
     func testGenerate_complexStruct_withEncodables() throws {
         let result: SomeStruct = try instanceGenerator.generate(nil, [SomeEnum.case2])
@@ -46,8 +42,6 @@ final class InstanceGeneratorExtendedTests: XCTestCase {
         XCTAssertFalse(result.array.isEmpty)
         XCTAssertFalse(result.dict.isEmpty)
     }
-
-    // MARK: - Predefined values
 
     func testGenerate_withPredefinedString() throws {
         let expected = "predetermined"
@@ -94,8 +88,6 @@ final class InstanceGeneratorExtendedTests: XCTestCase {
         XCTAssertEqual(result.bool, true)
     }
 
-    // MARK: - Nil parameters
-
     func testGenerate_nilPredefinedValues_nilEncodables_simpleStruct() throws {
         let result: SomeSubStruct = try instanceGenerator.generate(nil, nil)
 
@@ -108,16 +100,12 @@ final class InstanceGeneratorExtendedTests: XCTestCase {
         XCTAssertFalse(result.text.isEmpty)
     }
 
-    // MARK: - Produces varied results
-
     func testGenerate_producesVariedResults() throws {
         let result1: SomeSubStruct = try instanceGenerator.generate(nil)
         let result2: SomeSubStruct = try instanceGenerator.generate(nil)
 
         XCTAssertNotEqual(result1.text, result2.text)
     }
-
-    // MARK: - Encodable matching
 
     func testGenerate_encodableMatchesByType() throws {
         let result: SomeStruct = try instanceGenerator.generate(nil, [SomeEnum.case1("hello", 42)])
@@ -134,12 +122,9 @@ final class InstanceGeneratorExtendedTests: XCTestCase {
         XCTAssertNotNil(result.someEnum)
     }
 
-    // MARK: - Optional field handling
-
     func testGenerate_optionalFieldCanBeGenerated() throws {
         let result: SomeStruct = try instanceGenerator.generate(nil, [SomeEnum.case2])
 
-        // optional field may or may not be nil, but generation should succeed
         XCTAssertNotNil(result)
     }
 
@@ -150,12 +135,8 @@ final class InstanceGeneratorExtendedTests: XCTestCase {
 
         let result: SomeStruct = try instanceGenerator.generate(predefined, [SomeEnum.case2])
 
-        // Optional fields decode as nil without triggering keyNotFound,
-        // so predefined values for optionals are not applied by the generator
         XCTAssertNil(result.optional)
     }
-
-    // MARK: - Struct with only primitives
 
     struct SimplePrimitive: Decodable {
         let name: String
@@ -172,8 +153,6 @@ final class InstanceGeneratorExtendedTests: XCTestCase {
         XCTAssertGreaterThan(result.score, 0)
     }
 
-    // MARK: - Struct with arrays and dictionaries
-
     struct CollectionStruct: Decodable {
         let tags: [String]
         let metadata: [String: String]
@@ -185,8 +164,6 @@ final class InstanceGeneratorExtendedTests: XCTestCase {
         XCTAssertFalse(result.tags.isEmpty)
         XCTAssertFalse(result.metadata.isEmpty)
     }
-
-    // MARK: - Deeply nested struct
 
     struct Level3: Decodable { let value: String }
     struct Level2: Decodable { let nested: Level3 }

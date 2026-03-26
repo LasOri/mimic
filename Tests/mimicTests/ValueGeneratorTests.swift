@@ -8,8 +8,6 @@ import XCTest
 
 final class ValueGeneratorTests: XCTestCase {
 
-    // MARK: - BoolGenerator
-
     func testBoolGenerator_returnsBool() {
         let generator = BoolGenerator()
 
@@ -33,8 +31,6 @@ final class ValueGeneratorTests: XCTestCase {
         XCTAssertTrue(seenFalse, "BoolGenerator should produce false")
     }
 
-    // MARK: - IntGenerator
-
     func testIntGenerator_returnsNonNegative() {
         let generator = IntGenerator()
 
@@ -50,8 +46,6 @@ final class ValueGeneratorTests: XCTestCase {
         XCTAssertGreaterThan(values.count, 1, "IntGenerator should produce varied values")
     }
 
-    // MARK: - DoubleGenerator
-
     func testDoubleGenerator_returnsPositive() {
         let generator = DoubleGenerator()
 
@@ -66,8 +60,6 @@ final class ValueGeneratorTests: XCTestCase {
 
         XCTAssertGreaterThan(values.count, 1, "DoubleGenerator should produce varied values")
     }
-
-    // MARK: - StringGenerator
 
     func testStringGenerator_returnsNonEmptyString() {
         let generator = StringGenerator()

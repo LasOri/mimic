@@ -8,8 +8,6 @@ import XCTest
 
 final class GenerateWrapperTests: XCTestCase {
 
-    // MARK: - Basic generation
-
     @Generate(encodables: SomeEnum.case2)
     var basicStruct: SomeStruct
 
@@ -17,8 +15,6 @@ final class GenerateWrapperTests: XCTestCase {
         XCTAssertNotNil(basicStruct)
         XCTAssertFalse(basicStruct.text.isEmpty)
     }
-
-    // MARK: - With predefined values
 
     @Generate([
         \SomeStruct.text: "predefined",
@@ -31,8 +27,6 @@ final class GenerateWrapperTests: XCTestCase {
         XCTAssertEqual(predefinedStruct.num, 42)
     }
 
-    // MARK: - Simple struct without encodables
-
     @Generate()
     var simpleStruct: SomeSubStruct
 
@@ -41,8 +35,6 @@ final class GenerateWrapperTests: XCTestCase {
         XCTAssertFalse(simpleStruct.text.isEmpty)
     }
 
-    // MARK: - Setter
-
     @Generate()
     var settableStruct: SomeSubStruct
 
@@ -50,11 +42,8 @@ final class GenerateWrapperTests: XCTestCase {
         let custom = SomeSubStruct(text: "custom")
         settableStruct = custom
 
-        // The getter always regenerates, so the set value is overwritten on next access
         XCTAssertNotEqual(settableStruct.text, "custom")
     }
-
-    // MARK: - Each access regenerates
 
     @Generate()
     var regeneratedStruct: SomeSubStruct
@@ -66,16 +55,12 @@ final class GenerateWrapperTests: XCTestCase {
         XCTAssertNotEqual(first, second, "Each access should regenerate the instance")
     }
 
-    // MARK: - Multiple encodables
-
     @Generate(encodables: SomeEnum.case1("text", 1), SomeEnum.case2)
     var multiEncodableStruct: SomeStruct
 
     func testGenerate_withMultipleEncodables() {
         XCTAssertNotNil(multiEncodableStruct)
     }
-
-    // MARK: - Nested struct
 
     @Generate()
     var innerStruct: InnerStruct
@@ -84,8 +69,6 @@ final class GenerateWrapperTests: XCTestCase {
         XCTAssertNotNil(innerStruct)
         XCTAssertFalse(innerStruct.subStruct.text.isEmpty)
     }
-
-    // MARK: - Predefined only, no encodables
 
     @Generate([\SomeSubStruct.text: "specific"])
     var predefinedOnly: SomeSubStruct

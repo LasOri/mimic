@@ -48,7 +48,6 @@ struct ParsedProperty {
 enum ProtocolParser {
 
     static func parse(_ protocolDecl: ProtocolDeclSyntax) -> ParsedProtocol {
-        let name = protocolDecl.name.text
         var methods: [ParsedMethod] = []
         var properties: [ParsedProperty] = []
 
@@ -62,48 +61,34 @@ enum ProtocolParser {
             }
         }
 
-        return ParsedProtocol(name: name, methods: methods, properties: properties)
+        return ParsedProtocol(name: protocolDecl.name.text, methods: methods, properties: properties)
     }
 
     private static func parseMethod(_ funcDecl: FunctionDeclSyntax) -> ParsedMethod {
         let name = funcDecl.name.text
-
-        let parameters = funcDecl.signature.parameterClause.parameters.map { param -> ParsedParameter in
-            let firstName = param.firstName.text
-            let secondName = param.secondName?.text
-            let typeString = param.type.trimmedDescription
-            let isOptional = param.type.is(OptionalTypeSyntax.self)
-                || param.type.is(ImplicitlyUnwrappedOptionalTypeSyntax.self)
-            let isClosure = isFunctionType(param.type)
-            let isEscaping = hasEscapingAttribute(param.type)
-
-            return ParsedParameter(
-                firstName: firstName,
-                secondName: secondName,
-                type: typeString,
-                isOptional: isOptional,
-                isClosure: isClosure,
-                isEscaping: isEscaping
-            )
-        }
-
-        let returnType = funcDecl.signature.returnClause.map { clause in
-            clause.type.trimmedDescription
-        }
-
+        let parameters = funcDecl.signature.parameterClause.parameters.map(parseParameter)
+        let returnType = funcDecl.signature.returnClause.map { $0.type.trimmedDescription }
         let effectSpec = funcDecl.signature.effectSpecifiers
-        let isAsync = effectSpec?.asyncSpecifier != nil
-        let isThrowing = effectSpec?.throwsClause != nil
-
-        let fnPropertyName = "fn\(name.prefix(1).uppercased())\(name.dropFirst())"
 
         return ParsedMethod(
             name: name,
             parameters: parameters,
             returnType: returnType,
-            isAsync: isAsync,
-            isThrowing: isThrowing,
-            fnPropertyName: fnPropertyName
+            isAsync: effectSpec?.asyncSpecifier != nil,
+            isThrowing: effectSpec?.throwsClause != nil,
+            fnPropertyName: fnName(from: name)
+        )
+    }
+
+    private static func parseParameter(_ param: FunctionParameterSyntax) -> ParsedParameter {
+        ParsedParameter(
+            firstName: param.firstName.text,
+            secondName: param.secondName?.text,
+            type: param.type.trimmedDescription,
+            isOptional: param.type.is(OptionalTypeSyntax.self)
+                || param.type.is(ImplicitlyUnwrappedOptionalTypeSyntax.self),
+            isClosure: isFunctionType(param.type),
+            isEscaping: hasEscapingAttribute(param.type)
         )
     }
 
@@ -115,46 +100,38 @@ enum ProtocolParser {
         }
 
         let name = pattern.identifier.text
-        let type = typeAnnotation.type.trimmedDescription
-
-        var hasGetter = false
-        var hasSetter = false
-
-        if let accessorBlock = binding.accessorBlock {
-            switch accessorBlock.accessors {
-            case .accessors(let accessorList):
-                for accessor in accessorList {
-                    if accessor.accessorSpecifier.text == "get" {
-                        hasGetter = true
-                    } else if accessor.accessorSpecifier.text == "set" {
-                        hasSetter = true
-                    }
-                }
-            case .getter:
-                hasGetter = true
-            }
-        } else {
-            hasGetter = true
-        }
-
+        let (hasGetter, hasSetter) = accessors(from: binding)
         let capitalizedName = name.prefix(1).uppercased() + name.dropFirst()
-        let fnGetterName = "fn\(capitalizedName)Getter"
-        let fnSetterName = hasSetter ? "fn\(capitalizedName)Setter" : nil
 
         return ParsedProperty(
             name: name,
-            type: type,
+            type: typeAnnotation.type.trimmedDescription,
             hasGetter: hasGetter,
             hasSetter: hasSetter,
-            fnGetterName: fnGetterName,
-            fnSetterName: fnSetterName
+            fnGetterName: "fn\(capitalizedName)Getter",
+            fnSetterName: hasSetter ? "fn\(capitalizedName)Setter" : nil
         )
     }
 
-    private static func isFunctionType(_ type: TypeSyntax) -> Bool {
-        if type.is(FunctionTypeSyntax.self) {
-            return true
+    private static func accessors(from binding: PatternBindingSyntax) -> (hasGetter: Bool, hasSetter: Bool) {
+        guard let accessorBlock = binding.accessorBlock else {
+            return (true, false)
         }
+        switch accessorBlock.accessors {
+        case .accessors(let list):
+            let texts = list.map { $0.accessorSpecifier.text }
+            return (texts.contains("get"), texts.contains("set"))
+        case .getter:
+            return (true, false)
+        }
+    }
+
+    private static func fnName(from methodName: String) -> String {
+        "fn\(methodName.prefix(1).uppercased())\(methodName.dropFirst())"
+    }
+
+    private static func isFunctionType(_ type: TypeSyntax) -> Bool {
+        if type.is(FunctionTypeSyntax.self) { return true }
         if let attributed = type.as(AttributedTypeSyntax.self) {
             return isFunctionType(attributed.baseType)
         }
@@ -162,11 +139,9 @@ enum ProtocolParser {
     }
 
     private static func hasEscapingAttribute(_ type: TypeSyntax) -> Bool {
-        if let attributed = type.as(AttributedTypeSyntax.self) {
-            return attributed.attributes.contains { attr in
-                attr.as(AttributeSyntax.self)?.attributeName.trimmedDescription == "escaping"
-            }
+        guard let attributed = type.as(AttributedTypeSyntax.self) else { return false }
+        return attributed.attributes.contains { attr in
+            attr.as(AttributeSyntax.self)?.attributeName.trimmedDescription == "escaping"
         }
-        return false
     }
 }

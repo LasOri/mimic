@@ -11,8 +11,6 @@ final class JsonTests: XCTestCase {
     let encoder = JSONEncoder()
     let decoder = JSONDecoder()
 
-    // MARK: - Encoding & Decoding roundtrip
-
     func testEncodeDecode_string() throws {
         let json = Json.string("hello")
 
@@ -125,8 +123,6 @@ final class JsonTests: XCTestCase {
         XCTAssertEqual(decoded, json)
     }
 
-    // MARK: - Equatable
-
     func testEquatable_sameValues() {
         XCTAssertEqual(Json.string("a"), Json.string("a"))
         XCTAssertEqual(Json.int(1), Json.int(1))
@@ -145,8 +141,6 @@ final class JsonTests: XCTestCase {
         XCTAssertNotEqual(Json.string("1"), Json.int(1))
         XCTAssertNotEqual(Json.int(1), Json.bool(true))
     }
-
-    // MARK: - Subscript getter (object)
 
     func testSubscriptGet_singleKey_objectValue() {
         let json = Json.object(["name": .string("test")])
@@ -206,8 +200,6 @@ final class JsonTests: XCTestCase {
         XCTAssertNil(result)
     }
 
-    // MARK: - Subscript getter (array)
-
     func testSubscriptGet_arrayWithIntKey() {
         let json = Json.array([.string("first"), .string("second")])
 
@@ -229,8 +221,6 @@ final class JsonTests: XCTestCase {
 
         XCTAssertEqual(result, .string("second"))
     }
-
-    // MARK: - Subscript setter
 
     func testSubscriptSet_singleKey_setsValue() {
         var json = Json.object([:])

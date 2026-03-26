@@ -8,122 +8,98 @@ import SwiftSyntaxBuilder
 enum MockClassBuilder {
 
     static func build(from parsed: ParsedProtocol) -> DeclSyntax {
-        let className = "Fake\(parsed.name)"
         var members: [String] = []
-
-        // Fn properties for methods
-        for method in parsed.methods {
-            let returnType = method.returnType ?? "()"
-            members.append("    public let \(method.fnPropertyName) = Fn<\(returnType)>()")
-        }
-
-        // Fn properties for properties
-        for prop in parsed.properties {
-            members.append("    public let \(prop.fnGetterName) = Fn<\(prop.type)>()")
-            if let setterName = prop.fnSetterName {
-                members.append("    public let \(setterName) = Fn<()>()")
-            }
-        }
+        members.append(contentsOf: fnDeclarations(for: parsed))
 
         if !parsed.methods.isEmpty || !parsed.properties.isEmpty {
             members.append("")
         }
 
-        // Method implementations
-        for method in parsed.methods {
-            members.append(buildMethodImplementation(method))
-        }
+        members.append(contentsOf: parsed.methods.map(buildMethodImplementation))
+        members.append(contentsOf: parsed.properties.map(buildPropertyImplementation))
 
-        // Property implementations
-        for prop in parsed.properties {
-            members.append(buildPropertyImplementation(prop))
-        }
-
-        let membersStr = members.joined(separator: "\n")
-
+        let body = members.joined(separator: "\n")
         let source = """
-        final class \(className): \(parsed.name), Mimic {
-        \(membersStr)
+        final class Fake\(parsed.name): \(parsed.name), Mimic {
+        \(body)
         }
         """
-
         return DeclSyntax(stringLiteral: source)
     }
 
-    private static func buildMethodImplementation(_ method: ParsedMethod) -> String {
-        var parts: [String] = []
+    private static func fnDeclarations(for parsed: ParsedProtocol) -> [String] {
+        var declarations: [String] = []
+        for method in parsed.methods {
+            let returnType = method.returnType ?? "()"
+            declarations.append("    public let \(method.fnPropertyName) = Fn<\(returnType)>()")
+        }
+        for prop in parsed.properties {
+            declarations.append("    public let \(prop.fnGetterName) = Fn<\(prop.type)>()")
+            if let setterName = prop.fnSetterName {
+                declarations.append("    public let \(setterName) = Fn<()>()")
+            }
+        }
+        return declarations
+    }
 
-        // Build parameter list
-        let paramList = method.parameters.map { param -> String in
+    private static func buildMethodImplementation(_ method: ParsedMethod) -> String {
+        let signature = buildSignature(method)
+        let body = buildInvokeCall(method)
+        return "\(signature) {\n\(body)\n    }"
+    }
+
+    private static func buildSignature(_ method: ParsedMethod) -> String {
+        let paramList = method.parameters.map { param in
             let label = param.firstName ?? "_"
             if let secondName = param.secondName {
                 return "\(label) \(secondName): \(param.type)"
-            } else {
-                return "\(label): \(param.type)"
             }
+            return "\(label): \(param.type)"
         }.joined(separator: ", ")
 
-        // Build function signature
         var signature = "    func \(method.name)(\(paramList))"
-        if method.isAsync {
-            signature += " async"
-        }
-        if method.isThrowing {
-            signature += " throws"
-        }
-        if let returnType = method.returnType {
-            signature += " -> \(returnType)"
-        }
+        if method.isAsync { signature += " async" }
+        if method.isThrowing { signature += " throws" }
+        if let returnType = method.returnType { signature += " -> \(returnType)" }
+        return signature
+    }
 
-        parts.append(signature + " {")
-
-        // Build invoke call
-        let invokeParams = method.parameters.map { param -> String in
-            let name = param.effectiveName
-            if param.isOptional {
-                return "\(name) as Any"
-            }
-            return name
-        }
-
+    private static func buildInvokeCall(_ method: ParsedMethod) -> String {
         let tryKeyword = method.isThrowing ? "try" : "try!"
         let awaitKeyword = method.isAsync ? "await " : ""
+        let returnKeyword = method.returnType != nil ? "return " : ""
 
-        if invokeParams.isEmpty {
-            if method.returnType != nil {
-                parts.append("        return \(tryKeyword) \(awaitKeyword)\(method.fnPropertyName).invoke()")
-            } else {
-                parts.append("        \(tryKeyword) \(awaitKeyword)\(method.fnPropertyName).invoke()")
-            }
-        } else {
-            let paramsStr = invokeParams.joined(separator: ", ")
-            if method.returnType != nil {
-                parts.append("        return \(tryKeyword) \(awaitKeyword)\(method.fnPropertyName).invoke(params: \(paramsStr))")
-            } else {
-                parts.append("        \(tryKeyword) \(awaitKeyword)\(method.fnPropertyName).invoke(params: \(paramsStr))")
-            }
+        let invokeArgs = method.parameters.map { param in
+            param.isOptional ? "\(param.effectiveName) as Any" : param.effectiveName
         }
 
-        parts.append("    }")
-        return parts.joined(separator: "\n")
+        let invoke: String
+        if invokeArgs.isEmpty {
+            invoke = "\(method.fnPropertyName).invoke()"
+        } else {
+            invoke = "\(method.fnPropertyName).invoke(params: \(invokeArgs.joined(separator: ", ")))"
+        }
+
+        return "        \(returnKeyword)\(tryKeyword) \(awaitKeyword)\(invoke)"
     }
 
     private static func buildPropertyImplementation(_ prop: ParsedProperty) -> String {
-        var parts: [String] = []
-        parts.append("    var \(prop.name): \(prop.type) {")
-
-        if prop.hasSetter {
-            parts.append("        get {")
-            parts.append("            try! \(prop.fnGetterName).invoke()")
-            parts.append("        }")
-            parts.append("        set {")
-            parts.append("            try! \(prop.fnSetterName!).invoke(params: newValue)")
-            parts.append("        }")
-        } else {
-            parts.append("        try! \(prop.fnGetterName).invoke()")
+        guard let setterName = prop.fnSetterName, prop.hasSetter else {
+            return """
+                var \(prop.name): \(prop.type) {
+                    try! \(prop.fnGetterName).invoke()
+                }
+            """
         }
-
-        parts.append("    }")
-        return parts.joined(separator: "\n")
+        return """
+            var \(prop.name): \(prop.type) {
+                get {
+                    try! \(prop.fnGetterName).invoke()
+                }
+                set {
+                    try! \(setterName).invoke(params: newValue)
+                }
+            }
+        """
     }
 }

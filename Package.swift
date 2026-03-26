@@ -7,6 +7,7 @@
 
 
 import PackageDescription
+import CompilerPluginSupport
 
 let package = Package(
     name: "mimic",
@@ -18,15 +19,37 @@ let package = Package(
         .library(
             name: "mimic",
             targets: ["mimic"]),
+        .library(
+            name: "MimicMacros",
+            targets: ["MimicMacros"]),
     ],
     dependencies: [
+        .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "603.0.0-latest"),
     ],
     targets: [
         .target(
             name: "mimic",
             dependencies: []),
+        .macro(
+            name: "MimicMacroPlugin",
+            dependencies: [
+                .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+                .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
+            ]
+        ),
+        .target(
+            name: "MimicMacros",
+            dependencies: ["MimicMacroPlugin", "mimic"]
+        ),
         .testTarget(
             name: "mimicTests",
             dependencies: ["mimic"]),
+        .testTarget(
+            name: "MimicMacroTests",
+            dependencies: [
+                "MimicMacroPlugin",
+                .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
+            ]
+        ),
     ]
 )
